@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>metaverse-avatar — minimal play example</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #1a1d24; }
+    #hud {
+      position: fixed; left: 12px; bottom: 12px; pointer-events: none;
+      font: 13px system-ui, sans-serif; color: #c9ced9;
+      background: rgba(20, 22, 29, 0.8); padding: 8px 12px; border-radius: 8px;
+    }
+    #hud b { color: #fff; }
+  </style>
+
+  <!-- three.js (+ its addons) straight from a CDN via an import map. Your own
+       app/page provides three; the avatar library treats it as a peer. -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.184.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.184.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="hud"><b>WASD</b> move · <b>Shift</b> run · <b>F</b> fly · <b>Space</b> jump · <b>X</b> sit · drag to orbit</div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+    // The only library import is the avatar itself.
+    import { Avatar } from '../../index.js';
+    // Keyboard driving + chase camera lives right here in the example (playMode.js)
+    // — copy it into your own project and adapt it however you like.
+    import { PlayMode } from './playMode.js';
+
+    // ---- renderer / scene -------------------------------------------------
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(devicePixelRatio);
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1a1d24);
+    // A neutral studio environment so the avatar's metallic/roughness materials
+    // have something to reflect (metals render near-black without one).
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+    const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.05, 100);
+    camera.position.set(1.6, 1.5, 2.6);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 0.9, 0);
+    controls.enableDamping = true;
+
+    // ---- lights + ground --------------------------------------------------
+    scene.add(new THREE.HemisphereLight(0xc8d4ff, 0x3a3530, 1.2));
+    const sun = new THREE.DirectionalLight(0xfff2e0, 2.2);
+    sun.position.set(3, 5, 2);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    scene.add(sun);
+
+    const ground = new THREE.Mesh(
+      new THREE.CircleGeometry(6, 48),
+      new THREE.MeshStandardMaterial({ color: 0x23262f, roughness: 0.95 }),
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+    scene.add(new THREE.GridHelper(12, 24, 0x3a3f4e, 0x2a2e3a));
+
+    // ---- avatar -----------------------------------------------------------
+    // load(basePath) points at this repo's local model files (../../models/).
+    const avatar = await new Avatar().load('../../models/');
+    avatar.group.rotation.y = -Math.PI / 2; // face the camera (+Z)
+    scene.add(avatar.group);
+    avatar.setBlinking(true);
+
+    // ---- keyboard driving + chase camera (see playMode.js) ----------------
+    const play = new PlayMode({ avatar, camera, controls });
+    await play.enter();
+
+    // ---- loop -------------------------------------------------------------
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+
+    const clock = new THREE.Clock();
+    renderer.setAnimationLoop(() => {
+      const dt = clock.getDelta();
+      avatar.update(dt); // pose, physics, blink, lip-sync, eye look-at
+      play.update(dt);   // movement + chase camera
+      renderer.render(scene, camera);
+    });
+  </script>
+</body>
+</html>

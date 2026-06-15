@@ -1,0 +1,17 @@
+{
+  "name": "metaverse-avatar-mcp-example",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Standalone example: control a metaverse-avatar scene over MCP. Runs an MCP server + WebSocket bridge that relays tool calls into an avatar page in the browser.",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "express": "^4.21.2",
+    "ws": "^8.18.1",
+    "zod": "^3.24.2"
+  }
+}

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>metaverse-avatar — MCP example</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #1a1d24; }
+    #app { position: fixed; inset: 0; }
+    #panel {
+      position: fixed; top: 12px; left: 12px; width: 320px; max-height: calc(100% - 24px);
+      overflow: auto; box-sizing: border-box; padding: 14px 16px;
+      background: rgba(20, 22, 29, 0.92); border: 1px solid #272b37; border-radius: 10px;
+      font: 13px/1.5 system-ui, sans-serif; color: #c9ced9; backdrop-filter: blur(8px);
+    }
+    #panel h1 { font-size: 15px; margin: 0 0 8px; color: #fff; }
+    .status { font-weight: 600; margin: 6px 0; }
+    .status.ok { color: #9ece6a; }
+    .status.bad { color: #f7768e; }
+    code { background: #11131a; border: 1px solid #272b37; border-radius: 5px; padding: 1px 5px; word-break: break-all; }
+    pre { background: #11131a; border: 1px solid #272b37; border-radius: 6px; padding: 8px; font-size: 11px; white-space: pre-wrap; word-break: break-all; }
+    .hint { font-size: 11px; color: #8b90a0; margin-top: 8px; }
+  </style>
+
+  <!-- three.js from a CDN import map (the avatar library treats three as a peer). -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.184.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.184.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <div id="panel">
+    <h1>MCP control</h1>
+    <div class="status bad" id="status">connecting…</div>
+    <div>Endpoint: <code id="endpoint">—</code></div>
+    <div class="hint">Point your MCP client at the endpoint above. The server relays
+      each tool call over a WebSocket to this page. <strong>Leave this tab open.</strong></div>
+    <div style="margin-top:10px">Active avatar pose:</div>
+    <pre id="pose">waiting…</pre>
+    <div class="hint">Tools: <code>list_animations</code>, <code>trigger_animation</code>,
+      <code>get_avatar_transform</code>, <code>capture_screenshot</code>,
+      <code>set_avatar_blink</code>, <code>set_avatar_look_at</code>,
+      <code>avatar_text_to_speech</code>, <code>list_avatars</code>,
+      <code>add_avatar</code>, <code>select_avatar</code>.</div>
+  </div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

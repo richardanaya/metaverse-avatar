@@ -1,0 +1,48 @@
+{
+  "name": "metaverse-avatar",
+  "version": "0.1.0",
+  "description": "A self-contained, independently-controllable three.js avatar (RuthAndRoth Ruth2) with shape sliders, BVH/glTF animation, PBR materials, physics, lip-sync, blinking, and attachments — one class, new Avatar().",
+  "type": "module",
+  "author": "Richard Anaya <richard.anaya@gmail.com>",
+  "homepage": "https://github.com/richardanaya/metaverse-avatar#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/richardanaya/metaverse-avatar.git"
+  },
+  "bugs": {
+    "url": "https://github.com/richardanaya/metaverse-avatar/issues"
+  },
+  "main": "index.js",
+  "module": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./Avatar": "./Avatar.js"
+  },
+  "files": [
+    "*.js",
+    "anims",
+    "models",
+    "licenses",
+    "README.md",
+    "LICENSE.md",
+    "ASSET_LICENSES.md"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "dev": "python3 -m http.server 8413"
+  },
+  "keywords": [
+    "three",
+    "threejs",
+    "avatar",
+    "3d",
+    "animation",
+    "bvh",
+    "lip-sync",
+    "ruth"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "three": ">=0.184.0"
+  }
+}

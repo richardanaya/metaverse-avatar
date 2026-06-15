@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>metaverse-avatar</title>
+  <style>
+    :root {
+      --panel-w: 300px;
+      --panel-bg: rgba(20, 22, 29, 0.94);
+      --panel-fg: #c9ced9;
+      --muted: #8b90a0;
+      --faint: #6b7080;
+      --accent: #7aa2f7;
+      --accent-soft: rgba(122, 162, 247, 0.14);
+      --border: #272b37;
+      --surface: #1d212c;
+      --surface-2: #242938;
+      --track: #2c3140;
+    }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #14161c; }
+    body { font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--panel-fg); }
+    #app { position: fixed; inset: 0; }
+    :where(button, select, input):focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+    /* ---- panel shell ---- */
+    #panel {
+      position: fixed; top: 0; left: 0; bottom: 0; width: var(--panel-w);
+      background: linear-gradient(180deg, rgba(23, 25, 33, 0.96), rgba(17, 19, 25, 0.96));
+      border-right: 1px solid var(--border);
+      overflow-y: auto; padding: 14px 16px 28px; box-sizing: border-box;
+      backdrop-filter: blur(8px);
+      transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+      scrollbar-width: thin; scrollbar-color: #2b303d transparent;
+    }
+    body.panel-collapsed #panel { transform: translateX(-100%); }
+    #panel::-webkit-scrollbar { width: 8px; }
+    #panel::-webkit-scrollbar-thumb { background: #2b303d; border-radius: 4px; }
+    #panel::-webkit-scrollbar-thumb:hover { background: #394051; }
+
+    #panel-toggle {
+      position: fixed; top: 12px; left: var(--panel-w); z-index: 10;
+      width: 24px; height: 38px; padding: 0;
+      border: 1px solid var(--border); border-left: none;
+      border-radius: 0 8px 8px 0; background: var(--panel-bg); color: var(--muted);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: left 0.28s cubic-bezier(0.4, 0, 0.2, 1), color 0.15s, background 0.15s;
+    }
+    #panel-toggle:hover { color: #fff; background: var(--surface-2); }
+    #panel-toggle::after {
+      content: ''; width: 7px; height: 7px; margin-left: 3px;
+      border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+      transform: rotate(135deg); transition: transform 0.28s;
+    }
+    body.panel-collapsed #panel-toggle { left: 0; }
+    body.panel-collapsed #panel-toggle::after { transform: rotate(-45deg); margin-left: -3px; }
+
+    /* ---- header ---- */
+    #panel h1 {
+      font-size: 15px; margin: 0 0 2px; color: #fff; letter-spacing: 0.2px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    #panel h1::before {
+      content: ''; width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto;
+      background: var(--accent); box-shadow: 0 0 10px var(--accent);
+    }
+    #panel .sub { font-size: 11px; color: var(--faint); margin: 0 0 14px 16px; }
+
+    /* ---- tabs (segmented control) ---- */
+    .tabs {
+      display: flex; gap: 2px; margin-bottom: 12px; padding: 3px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 9px;
+    }
+    .tab-btn {
+      flex: 1; background: none; border: none; border-radius: 6px; color: var(--muted);
+      padding: 6px 0; font-size: 11px; font-weight: 600; letter-spacing: 0.2px; cursor: pointer;
+      transition: color 0.15s, background 0.15s;
+    }
+    .tab-btn:hover { color: #fff; }
+    .tab-btn.active { background: var(--accent); color: #14161c; }
+    .tab-btn.lookat-on { background: #f7768e; color: #14161c; }
+    .tabs + .tabs { margin-top: -6px; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    input[type=color] {
+      -webkit-appearance: none; appearance: none; flex: 0 0 auto;
+      width: 40px; height: 24px; padding: 0; cursor: pointer;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+    }
+    input[type=color]::-webkit-color-swatch-wrapper { padding: 2px; }
+    input[type=color]::-webkit-color-swatch { border: none; border-radius: 4px; }
+    input[type=color]::-moz-color-swatch { border: none; border-radius: 4px; }
+
+    /* ---- section labels ---- */
+    .section-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+      color: var(--faint); margin: 14px 0 6px;
+    }
+    .tab-panel > .section-label:first-child,
+    .tab-panel > .texture-group:first-child .section-label { margin-top: 4px; }
+    .texture-group { margin: 0 0 6px; }
+    .texture-group-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 14px 0 6px; }
+    .texture-group-header .section-label { margin: 0; }
+
+    /* ---- rows ---- */
+    .row { display: flex; align-items: center; gap: 8px; margin: 7px 0; }
+    .row label { flex: 0 0 100px; font-size: 12px; color: var(--panel-fg); }
+    .row .val {
+      flex: 0 0 34px; text-align: center; font-size: 10px; color: var(--muted);
+      font-variant-numeric: tabular-nums; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 5px; padding: 2px 0;
+    }
+
+    /* ---- range sliders ---- */
+    .row input[type=range] {
+      -webkit-appearance: none; appearance: none; flex: 1; min-width: 0; height: 4px;
+      border-radius: 2px; outline: none; cursor: pointer; margin: 0;
+      background: linear-gradient(to right, var(--accent) var(--p, 50%), var(--track) var(--p, 50%));
+    }
+    .row input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%;
+      background: #e8ecf6; border: none; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+      transition: transform 0.12s, box-shadow 0.12s;
+    }
+    .row input[type=range]:hover::-webkit-slider-thumb,
+    .row input[type=range]:active::-webkit-slider-thumb {
+      transform: scale(1.2);
+      box-shadow: 0 0 0 4px var(--accent-soft), 0 1px 4px rgba(0, 0, 0, 0.5);
+    }
+    .row input[type=range]::-moz-range-thumb {
+      width: 13px; height: 13px; border-radius: 50%; background: #e8ecf6; border: none;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); transition: transform 0.12s, box-shadow 0.12s;
+    }
+    .row input[type=range]:hover::-moz-range-thumb,
+    .row input[type=range]:active::-moz-range-thumb {
+      transform: scale(1.2);
+      box-shadow: 0 0 0 4px var(--accent-soft), 0 1px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    /* ---- checkboxes as toggle switches ---- */
+    .row input[type=checkbox], #timeline input[type=checkbox], .mat-card-head input[type=checkbox] {
+      appearance: none; -webkit-appearance: none; flex: 0 0 auto; margin: 0;
+      width: 32px; height: 18px; border-radius: 10px; background: var(--track);
+      position: relative; cursor: pointer; transition: background 0.18s;
+    }
+    .row input[type=checkbox]::after, #timeline input[type=checkbox]::after, .mat-card-head input[type=checkbox]::after {
+      content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px;
+      border-radius: 50%; background: #9aa0b0; transition: left 0.18s, background 0.18s;
+    }
+    .row input[type=checkbox]:checked, #timeline input[type=checkbox]:checked, .mat-card-head input[type=checkbox]:checked { background: var(--accent); }
+    .row input[type=checkbox]:checked::after, #timeline input[type=checkbox]:checked::after, .mat-card-head input[type=checkbox]:checked::after { left: 16px; background: #fff; }
+
+    /* ---- buttons / selects / file input ---- */
+    select, button {
+      background: var(--surface); color: var(--panel-fg); border: 1px solid var(--border);
+      border-radius: 7px; padding: 5px 10px; font-family: inherit; font-size: 12px;
+    }
+    select {
+      appearance: none; -webkit-appearance: none; padding-right: 26px; cursor: pointer;
+      background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b90a0' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 9px center;
+      transition: border-color 0.15s;
+    }
+    select:hover { border-color: #3d4558; }
+    button { cursor: pointer; transition: border-color 0.15s, color 0.15s, background 0.15s, transform 0.05s; }
+    button:hover { border-color: var(--accent); color: #fff; }
+    button:active { transform: translateY(1px); }
+    button.active { background: var(--accent); color: #14161c; border-color: var(--accent); }
+    .btnrow { display: flex; gap: 6px; margin: 8px 0; flex-wrap: wrap; }
+    .btnrow button { flex: 1; }
+    input[type=file] {
+      width: 100%; box-sizing: border-box; background: var(--surface); color: var(--muted);
+      border: 1px solid var(--border); border-radius: 7px; padding: 5px; font-size: 11px;
+    }
+    input[type=file]::file-selector-button {
+      background: var(--surface-2); color: var(--panel-fg); border: 1px solid var(--border);
+      border-radius: 5px; padding: 3px 10px; margin-right: 8px; font: inherit; font-size: 11px;
+      cursor: pointer; transition: border-color 0.15s;
+    }
+    input[type=file]::file-selector-button:hover { border-color: var(--accent); }
+    .layer-clear-btn { padding: 2px 9px; font-size: 11px; flex: 0 0 auto; }
+    .layer-clear-btn:disabled { opacity: 0.35; cursor: default; }
+    .layer-clear-btn:disabled:hover { border-color: var(--border); color: var(--panel-fg); transform: none; }
+
+    /* ---- slider group cards ---- */
+    #sliders details {
+      border: 1px solid var(--border); border-radius: 9px; margin: 8px 0;
+      background: rgba(255, 255, 255, 0.015); overflow: hidden;
+    }
+    #sliders summary {
+      list-style: none; cursor: pointer; padding: 8px 11px; font-size: 12px; font-weight: 600;
+      color: var(--muted); display: flex; align-items: center; justify-content: space-between;
+      user-select: none; transition: color 0.15s, background 0.15s;
+    }
+    #sliders summary::-webkit-details-marker { display: none; }
+    #sliders summary:hover { color: #fff; background: var(--accent-soft); }
+    #sliders details[open] summary { color: #fff; border-bottom: 1px solid var(--border); }
+    #sliders summary::after {
+      content: ''; width: 7px; height: 7px; flex: 0 0 auto;
+      border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+      transform: rotate(-45deg); transition: transform 0.18s;
+    }
+    #sliders details[open] summary::after { transform: rotate(45deg); }
+    #sliders details .row { padding: 0 11px; }
+    #sliders details .row:last-of-type { margin-bottom: 10px; }
+
+    /* ---- texture drop zones ---- */
+    .drop-zones { display: flex; gap: 7px; }
+    .drop-zones-3 .drop-zone { flex: 1; min-width: 0; }
+    .drop-zone {
+      position: relative; overflow: hidden;
+      border: 1px dashed #343a49; border-radius: 9px; background: var(--surface);
+      padding: 10px 6px; text-align: center; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+      min-height: 72px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    }
+    .drop-zone:hover { border-color: var(--accent); }
+    .drop-zone:not(.has-image):hover { background: var(--accent-soft); }
+    .drop-zone.drag-over { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .drop-zone.has-image { border-style: solid; border-color: #3d4558; padding: 0; min-height: 88px; }
+    .drop-zone-preview {
+      position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+      opacity: 0; pointer-events: none; transition: opacity 0.15s;
+    }
+    .drop-zone.has-image .drop-zone-preview { opacity: 1; }
+    .drop-zone-overlay {
+      position: relative; z-index: 1; width: 100%; padding: 8px 6px; box-sizing: border-box;
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px;
+      min-height: 88px;
+    }
+    .drop-zone.has-image .drop-zone-overlay {
+      min-height: 88px; justify-content: flex-end;
+      background: linear-gradient(180deg, rgba(20, 22, 28, 0.1) 0%, rgba(20, 22, 28, 0.55) 45%, rgba(20, 22, 28, 0.92) 100%);
+    }
+    .drop-zone-title { font-size: 11px; font-weight: 600; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8); }
+    .drop-zone-hint { font-size: 10px; color: var(--faint); line-height: 1.3; word-break: break-word; max-width: 100%; }
+    .drop-zone.has-image .drop-zone-hint { color: #d0d6e4; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85); }
+
+    /* ---- PBR material cards & map slots ---- */
+    .pbr-hint { font-size: 10px; color: var(--faint); margin: -2px 0 8px; line-height: 1.4; }
+    .mat-card {
+      border: 1px solid var(--border); border-radius: 9px; margin: 7px 0;
+      background: rgba(255, 255, 255, 0.015); padding: 8px 9px;
+    }
+    .mat-card-head {
+      display: flex; align-items: center; gap: 7px; margin-bottom: 7px;
+      font-size: 12px; font-weight: 600; color: var(--panel-fg);
+    }
+    .mat-card-head > span:first-child, .layer-name { flex: 1; min-width: 0; }
+    .layer-name { color: var(--muted); font-weight: 600; }
+    .layer-actions { display: flex; gap: 3px; flex: 0 0 auto; }
+    .layer-actions button { padding: 2px 7px; font-size: 11px; line-height: 1; }
+    .layer-actions button:disabled { opacity: 0.3; cursor: default; }
+    .layer-actions button:disabled:hover { border-color: var(--border); color: var(--panel-fg); transform: none; }
+
+    .pbr-slots { display: flex; gap: 5px; }
+    .pbr-slot {
+      position: relative; flex: 1; min-width: 0; aspect-ratio: 1;
+      border: 1px dashed #343a49; border-radius: 7px; background: var(--surface);
+      cursor: pointer; overflow: hidden; transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    }
+    .pbr-slot:hover { border-color: var(--accent); background: var(--accent-soft); }
+    .pbr-slot.drag-over { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .pbr-slot.filled { border-style: solid; border-color: #3d4558; }
+    .pbr-slot-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+    .pbr-slot.filled .pbr-slot-img { opacity: 1; }
+    .pbr-slot-tag {
+      position: absolute; left: 0; right: 0; bottom: 0; padding: 2px 0; z-index: 1;
+      font-size: 9px; font-weight: 700; letter-spacing: 0.3px; text-align: center;
+      color: var(--faint); pointer-events: none;
+    }
+    .pbr-slot.filled .pbr-slot-tag {
+      color: #e6eaf4; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+      background: linear-gradient(180deg, transparent, rgba(15, 17, 22, 0.85));
+    }
+    .pbr-slot-clear {
+      position: absolute; top: 2px; right: 2px; z-index: 2;
+      width: 16px; height: 16px; padding: 0; border-radius: 50%; font-size: 12px; line-height: 1;
+      display: none; align-items: center; justify-content: center;
+      background: rgba(15, 17, 22, 0.8); color: #fff; border: 1px solid var(--border);
+    }
+    .pbr-slot.filled .pbr-slot-clear { display: flex; }
+    .pbr-slot-clear:hover { border-color: #f7768e; color: #f7768e; }
+
+    .layer-list { margin-bottom: 4px; }
+    .add-layer-btn {
+      width: 100%; margin: 4px 0 2px; padding: 7px; border-style: dashed;
+      color: var(--muted); font-weight: 600;
+    }
+    .add-layer-btn:hover { color: #fff; border-style: dashed; }
+
+    /* ---- voice level meter ---- */
+    #voice-meter {
+      height: 10px; border-radius: 5px; background: var(--track);
+      overflow: hidden; border: 1px solid var(--border);
+    }
+    #voice-meter-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--accent), #9ece6a);
+      transition: width 0.05s linear;
+    }
+    #voice-toggle.active { background: #f7768e; color: #14161c; border-color: #f7768e; }
+
+    /* ---- play-mode keymap ---- */
+    .keymap { margin: 8px 0 0; display: grid; gap: 5px; }
+    .keymap > div { display: flex; align-items: center; gap: 9px; }
+    .keymap dt {
+      flex: 0 0 84px; text-align: center; font-size: 11px; font-weight: 600; color: #fff;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 3px 0;
+    }
+    .keymap dd { margin: 0; font-size: 12px; color: var(--muted); }
+    #play-toggle.active { background: #9ece6a; color: #14161c; border-color: #9ece6a; }
+
+    /* ---- MCP tab ---- */
+    .mcp-url-box {
+      margin: 8px 0 10px; padding: 10px 12px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    }
+    .mcp-url-box code {
+      display: block; margin-top: 6px; font-size: 12px; color: #fff; word-break: break-all;
+    }
+    .mcp-status { font-size: 12px; font-weight: 600; }
+    .mcp-status.ok { color: #9ece6a; }
+    .mcp-status.bad { color: #f7768e; }
+    .mcp-status.wait { color: var(--muted); }
+    .mcp-pre, .mcp-prompt {
+      margin: 0; padding: 10px 12px; font-size: 11px; line-height: 1.5;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 7px;
+      color: var(--muted);
+    }
+    .mcp-pre { white-space: pre-wrap; word-break: break-all; font-family: ui-monospace, monospace; }
+    .mcp-prompt + .mcp-prompt { margin-top: 6px; }
+    .mcp-prompt q { display: block; color: var(--panel-fg); font-style: italic; }
+    .mcp-tools dt { flex: 0 0 148px; font-size: 10px; }
+
+    /* ---- BVH editor timeline ---- */
+    #timeline {
+      position: fixed; left: var(--panel-w); right: 0; bottom: 0; z-index: 5;
+      display: none; align-items: center; gap: 7px; flex-wrap: wrap;
+      padding: 10px 14px; box-sizing: border-box;
+      background: var(--panel-bg); border-top: 1px solid var(--border);
+      backdrop-filter: blur(8px);
+      transition: left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    body.bvh-mode #timeline { display: flex; }
+    body.panel-collapsed #timeline { left: 0; }
+    body.bvh-mode #status { bottom: 64px; }
+    body.bvh-mode #btn-create-bvh { opacity: 0.4; pointer-events: none; }
+    #timeline button { font-size: 11px; padding: 5px 9px; flex: 0 0 auto; white-space: nowrap; }
+    #timeline button:disabled { opacity: 0.35; pointer-events: none; }
+    #tl-play { width: 36px; }
+    #tl-track {
+      position: relative; flex: 1 1 140px; height: 30px; min-width: 120px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 7px;
+      cursor: pointer; touch-action: none;
+    }
+    #tl-ruler {
+      position: absolute; inset: 0; border-radius: 7px; overflow: hidden; pointer-events: none;
+      background-image: repeating-linear-gradient(to right,
+        transparent 0, transparent calc(10% - 1px), var(--track) calc(10% - 1px), var(--track) 10%);
+      opacity: 0.6;
+    }
+    #tl-playhead {
+      position: absolute; top: 0; bottom: 0; left: 0; width: 2px; margin-left: -1px;
+      background: var(--accent); box-shadow: 0 0 6px var(--accent);
+      pointer-events: none; z-index: 3;
+    }
+    .tl-key {
+      position: absolute; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px;
+      background: #e0af68; border-radius: 2px; transform: rotate(45deg);
+      cursor: grab; z-index: 2; transition: background 0.1s, box-shadow 0.1s;
+    }
+    .tl-key:hover { background: #ffd591; box-shadow: 0 0 0 3px rgba(224, 175, 104, 0.25); }
+    #tl-time {
+      flex: 0 0 auto; font-size: 11px; color: var(--muted);
+      font-variant-numeric: tabular-nums; min-width: 84px; text-align: center;
+    }
+    #tl-selected {
+      flex: 0 0 auto; font-size: 11px; font-weight: 600; color: var(--accent);
+      white-space: nowrap; min-width: 120px; max-width: 220px; overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #tl-selected.tl-sel-none { color: var(--muted); font-weight: 400; }
+    #timeline label {
+      display: flex; align-items: center; gap: 5px; flex: 0 0 auto;
+      font-size: 11px; color: var(--muted); white-space: nowrap;
+    }
+    #tl-duration {
+      width: 42px; background: var(--surface); border: 1px solid var(--border);
+      color: var(--panel-fg); border-radius: 5px; padding: 3px 4px; font-size: 11px;
+    }
+    .tl-sep { width: 1px; height: 22px; background: var(--border); flex: 0 0 auto; }
+
+    /* ---- status chip ---- */
+    #status {
+      position: fixed; right: 12px; bottom: 10px; font-size: 11px; color: var(--muted);
+      background: var(--panel-bg); padding: 5px 12px; border-radius: 999px;
+      border: 1px solid var(--border); backdrop-filter: blur(6px);
+      max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      transition: bottom 0.2s;
+    }
+    #status:empty { display: none; }
+
+    /* ---- TransformControls gizmo overlay ---- */
+    .transform-controls {
+      z-index: 999 !important;
+      pointer-events: none;
+    }
+    .transform-controls > div {
+      pointer-events: auto;
+    }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.184.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.184.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <div id="panel">
+    <h1>metaverse-avatar</h1>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="tab-parts">Textures</button>
+      <button class="tab-btn" data-tab="tab-body">Body</button>
+      <button class="tab-btn" data-tab="tab-anim">Animation</button>
+      <button class="tab-btn" data-tab="tab-physics">Physics</button>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn" data-tab="tab-env">Environment</button>
+      <button class="tab-btn" data-tab="tab-voice">Voice</button>
+      <button class="tab-btn" data-tab="tab-lookat">Look at</button>
+      <button class="tab-btn" data-tab="tab-play">Play</button>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn" data-tab="tab-attachments">Attachments</button>
+    </div>
+
+    <div id="tab-parts" class="tab-panel active">
+      <div class="section-label">Skin — PBR maps</div>
+      <div class="pbr-hint">Drop an image on a slot (Alb · Nrm · Rgh · Met · AO), or click to browse.</div>
+      <div id="skin-regions"></div>
+      <div class="section-label">Material constants</div>
+      <div class="pbr-hint">Applied where a region has no roughness / metalness map.</div>
+      <div id="pbr-globals"></div>
+      <div class="section-label">Upper clothing layers</div>
+      <div id="clothing-upper" class="layer-list"></div>
+      <div class="section-label">Lower clothing layers</div>
+      <div id="clothing-lower" class="layer-list"></div>
+      <div class="section-label">Parts</div>
+      <div id="parts"></div>
+    </div>
+
+    <div id="tab-body" class="tab-panel">
+      <div id="sliders"></div>
+      <div class="btnrow" style="margin-top:10px">
+        <button id="btn-reset-shape">Reset shape</button>
+      </div>
+    </div>
+
+    <div id="tab-anim" class="tab-panel">
+      <div class="section-label">Playback</div>
+      <div class="pbr-hint">Stack clips as layers — the top layer wins on any bone it animates, lower layers fill in the rest (e.g. a hand pose on top of a full-body clip).</div>
+      <div id="anim-layers"></div>
+      <div class="btnrow">
+        <button id="btn-add-layer">+ Add layer</button>
+      </div>
+      <div class="btnrow">
+        <button id="btn-play">Pause</button>
+        <button id="btn-stop">Stop</button>
+        <button id="btn-skel">Skeleton</button>
+      </div>
+      <div class="row">
+        <label for="anim-speed">Speed</label>
+        <input id="anim-speed" type="range" min="0" max="200" value="100" />
+        <span class="val" id="anim-speed-val">1.0</span>
+      </div>
+      <div class="section-label">Custom clip</div>
+      <div class="row" style="display:block">
+        <input type="file" id="bvh-file" accept=".bvh" />
+      </div>
+      <div class="section-label">Author</div>
+      <div class="btnrow">
+        <button id="btn-create-bvh">&#10022; Create BVH&hellip;</button>
+      </div>
+    </div>
+
+    <div id="tab-physics" class="tab-panel">
+      <div class="section-label">Pec soft body</div>
+      <div class="row">
+        <input type="checkbox" id="physics-enabled" checked />
+        <label for="physics-enabled">Enable pec physics</label>
+      </div>
+      <div class="row">
+        <label for="physics-bounce">Bounciness</label>
+        <input id="physics-bounce" type="range" min="0" max="100" value="30" />
+        <span class="val" id="physics-bounce-val">30</span>
+      </div>
+      <div class="row">
+        <label for="physics-damping">Vertical damping</label>
+        <input id="physics-damping" type="range" min="0" max="100" value="65" />
+        <span class="val" id="physics-damping-val">65</span>
+      </div>
+      <div class="row">
+        <label for="physics-hdamping">Horizontal damping</label>
+        <input id="physics-hdamping" type="range" min="0" max="100" value="85" />
+        <span class="val" id="physics-hdamping-val">85</span>
+      </div>
+      <div class="row">
+        <label for="physics-sag">Gravity sag</label>
+        <input id="physics-sag" type="range" min="0" max="100" value="40" />
+        <span class="val" id="physics-sag-val">40</span>
+      </div>
+      <div class="btnrow" style="margin-top:8px">
+        <button id="btn-physics-reset">Reset</button>
+      </div>
+
+      <div class="section-label" style="margin-top:14px">Glute soft body</div>
+      <div class="row">
+        <input type="checkbox" id="physics-glute-enabled" checked />
+        <label for="physics-glute-enabled">Enable glute physics</label>
+      </div>
+      <div class="row">
+        <label for="physics-glute-bounce">Bounciness</label>
+        <input id="physics-glute-bounce" type="range" min="0" max="100" value="30" />
+        <span class="val" id="physics-glute-bounce-val">30</span>
+      </div>
+      <div class="row">
+        <label for="physics-glute-damping">Vertical damping</label>
+        <input id="physics-glute-damping" type="range" min="0" max="100" value="65" />
+        <span class="val" id="physics-glute-damping-val">65</span>
+      </div>
+      <div class="row">
+        <label for="physics-glute-hdamping">Horizontal damping</label>
+        <input id="physics-glute-hdamping" type="range" min="0" max="100" value="85" />
+        <span class="val" id="physics-glute-hdamping-val">85</span>
+      </div>
+      <div class="row">
+        <label for="physics-glute-sag">Gravity sag</label>
+        <input id="physics-glute-sag" type="range" min="0" max="100" value="40" />
+        <span class="val" id="physics-glute-sag-val">40</span>
+      </div>
+      <div class="btnrow" style="margin-top:8px">
+        <button id="btn-physics-glute-reset">Reset</button>
+      </div>
+    </div>
+
+    <div id="tab-env" class="tab-panel">
+      <div class="section-label">Lighting</div>
+      <div class="row">
+        <label for="env-ambient">Ambient</label>
+        <input id="env-ambient" type="range" min="0" max="300" value="120" />
+        <span class="val" id="env-ambient-val">1.2</span>
+      </div>
+      <div class="row">
+        <label for="env-sun">Sun</label>
+        <input id="env-sun" type="range" min="0" max="500" value="220" />
+        <span class="val" id="env-sun-val">2.2</span>
+      </div>
+      <div class="row">
+        <label for="env-sun-az">Sun direction</label>
+        <input id="env-sun-az" type="range" min="0" max="360" value="56" />
+        <span class="val" id="env-sun-az-val">56°</span>
+      </div>
+      <div class="row">
+        <label for="env-sun-el">Sun height</label>
+        <input id="env-sun-el" type="range" min="0" max="90" value="54" />
+        <span class="val" id="env-sun-el-val">54°</span>
+      </div>
+      <div class="row">
+        <label for="env-refl">Reflections</label>
+        <input id="env-refl" type="range" min="0" max="300" value="100" />
+        <span class="val" id="env-refl-val">1.0</span>
+      </div>
+      <div class="section-label">Scene</div>
+      <div class="row">
+        <label for="env-bg">Background</label>
+        <input type="color" id="env-bg" value="#1a1d24" />
+      </div>
+      <div class="row">
+        <input type="checkbox" id="env-fog" checked />
+        <label for="env-fog">Distance fog</label>
+      </div>
+      <div class="row">
+        <input type="checkbox" id="env-shadows" checked />
+        <label for="env-shadows">Shadows</label>
+      </div>
+      <div class="row">
+        <input type="checkbox" id="env-ground" checked />
+        <label for="env-ground">Ground</label>
+      </div>
+      <div class="row">
+        <input type="checkbox" id="env-grid" checked />
+        <label for="env-grid">Grid</label>
+      </div>
+      <div class="section-label">Environment map (HDRI)</div>
+      <div class="pbr-hint">Real-world lighting for the PBR reflections. Presets stream from the three.js CDN.</div>
+      <div class="row">
+        <label for="env-hdri-preset">Preset</label>
+        <select id="env-hdri-preset" style="flex:1">
+          <option value="">Neutral studio</option>
+          <option value="venice_sunset_1k.hdr">Venice Sunset</option>
+          <option value="quarry_01_1k.hdr" selected>Quarry</option>
+          <option value="spruit_sunrise_1k.hdr">Spruit Sunrise</option>
+          <option value="pedestrian_overpass_1k.hdr">Pedestrian Overpass</option>
+        </select>
+      </div>
+      <div class="row" style="display:block">
+        <input type="file" id="env-hdri" accept=".hdr,image/vnd.radiance" />
+      </div>
+      <div class="row">
+        <input type="checkbox" id="env-hdri-bg" checked />
+        <label for="env-hdri-bg">Show HDRI as background</label>
+      </div>
+    </div>
+
+    <div id="tab-voice" class="tab-panel">
+      <div class="section-label">Lip sync</div>
+      <div class="pbr-hint">Drives the jaw from your microphone — click start and allow mic access, then talk.</div>
+      <div class="btnrow">
+        <button id="voice-toggle">&#9679; Start mic</button>
+      </div>
+      <div class="row">
+        <label for="voice-sens">Sensitivity</label>
+        <input id="voice-sens" type="range" min="0" max="100" value="50" />
+        <span class="val" id="voice-sens-val">50</span>
+      </div>
+      <div class="row">
+        <label for="voice-open">Max open</label>
+        <input id="voice-open" type="range" min="0" max="100" value="100" />
+        <span class="val" id="voice-open-val">100</span>
+      </div>
+      <div class="section-label">Level</div>
+      <div id="voice-meter"><div id="voice-meter-fill"></div></div>
+
+      <div class="section-label">Test voice (TTS)</div>
+      <div class="pbr-hint">Generate a short sample with xAI TTS and play it with viseme lip-sync — handy for tuning Max open. Uses the server's XAI_API_KEY.</div>
+      <div class="btnrow">
+        <button id="voice-test">&#128266; Test voice</button>
+      </div>
+    </div>
+
+    <div id="tab-lookat" class="tab-panel">
+      <div class="section-label">Eye target</div>
+      <div class="pbr-hint">Place a target in the scene; the eyes track it while enabled. Drag the pink gizmo to move it.</div>
+      <div class="row">
+        <input type="checkbox" id="lookat-enabled" />
+        <label for="lookat-enabled">Eyes follow look at</label>
+      </div>
+
+      <div class="section-label">Blinking</div>
+      <div class="pbr-hint">Automatic eye blinks. Interval is the average gap between blinks; variation randomizes it; speed is how long one blink takes.</div>
+      <div class="row">
+        <input type="checkbox" id="blink-enabled" />
+        <label for="blink-enabled">Auto blink</label>
+      </div>
+      <div class="row">
+        <label for="blink-interval">Interval</label>
+        <input id="blink-interval" type="range" min="1" max="8" step="0.1" value="3.5" />
+        <span class="val" id="blink-interval-val">3.5s</span>
+      </div>
+      <div class="row">
+        <label for="blink-variation">Variation</label>
+        <input id="blink-variation" type="range" min="0" max="100" value="50" />
+        <span class="val" id="blink-variation-val">50%</span>
+      </div>
+      <div class="row">
+        <label for="blink-speed">Blink speed</label>
+        <input id="blink-speed" type="range" min="60" max="400" step="10" value="120" />
+        <span class="val" id="blink-speed-val">120ms</span>
+      </div>
+      <div class="btnrow">
+        <button id="blink-now">&#128064; Blink now</button>
+      </div>
+    </div>
+
+    <div id="tab-play" class="tab-panel">
+      <div class="section-label">Play mode</div>
+      <div class="pbr-hint">Drive the avatar with the keyboard. The camera follows from behind.</div>
+      <div class="btnrow">
+        <button id="play-toggle">&#9654; Enter play mode</button>
+        <button id="play-sit" disabled>Crouch</button>
+      </div>
+      <dl class="keymap">
+        <div><dt>W / &uarr;</dt><dd>Walk forward</dd></div>
+        <div><dt>S / &darr;</dt><dd>Walk backward</dd></div>
+        <div><dt>A / &larr;</dt><dd>Turn left</dd></div>
+        <div><dt>D / &rarr;</dt><dd>Turn right</dd></div>
+        <div><dt>Shift</dt><dd>Run (hold)</dd></div>
+        <div><dt>Space / tap E</dt><dd>Jump</dd></div>
+        <div><dt>Hold E</dt><dd>Take off / fly</dd></div>
+        <div><dt>F / Home</dt><dd>Toggle flight</dd></div>
+        <div><dt>E / C</dt><dd>Ascend / descend (flying)</dd></div>
+        <div><dt>X / Crouch</dt><dd>Crouch (WASD to crouch-walk), or stand back up</dd></div>
+      </dl>
+    </div>
+    <div id="tab-attachments" class="tab-panel">
+      <div class="section-label">Attachment points</div>
+      <div class="pbr-hint">Like Second Life &mdash; parent a 3D model (GLB) to a bone on the avatar rig. The object follows that bone&rsquo;s motion.</div>
+
+      <div class="section-label">Add attachment</div>
+      <div class="row" style="display:block">
+        <input type="file" id="att-file" accept=".glb,.gltf,model/gltf-binary,model/gltf+json" />
+      </div>
+      <div class="row">
+        <label for="att-bone">Bone</label>
+        <select id="att-bone" style="flex:1"></select>
+      </div>
+      <div class="btnrow">
+        <button id="att-add-builtin" title="Add a simple procedural sword parented to the right hand">&#9876; Add sword (R hand)</button>
+      </div>
+      <div class="btnrow">
+        <button id="att-clear-all">Clear all</button>
+      </div>
+
+      <div class="section-label" style="margin-top:16px">Attached objects</div>
+      <div id="att-list" style="margin-bottom:8px"></div>
+
+      <!-- offset editor (hidden until an attachment is selected) -->
+      <div class="section-label">Offset editor</div>
+      <div id="att-offset-editor" style="display:none">
+        <div class="pbr-hint">Move / rotate / scale the object relative to its parent bone. <code>[0,0,0]</code> means the object sits exactly at the bone&rsquo;s origin with no rotation or scale change.</div>
+        <div id="att-offset-pos"></div>
+        <div id="att-offset-rot"></div>
+        <div id="att-offset-scale"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <button id="panel-toggle" title="Hide panel" aria-label="Hide panel"></button>
+
+  <div id="timeline">
+    <button id="tl-play" title="Play / pause (Space)">&#9654;</button>
+    <div id="tl-track">
+      <div id="tl-ruler"></div>
+      <div id="tl-keys"></div>
+      <div id="tl-playhead"></div>
+    </div>
+    <span id="tl-time">0.00 / 4.0s</span>
+    <div class="tl-sep"></div>
+    <span id="tl-selected" title="What the gizmo is currently controlling">Nothing selected</span>
+    <div class="tl-sep"></div>
+    <button id="tl-key" title="Add / update keyframe at the playhead (all bones)">&#9210; Key</button>
+    <button id="tl-keymoved" title="Keyframe only the bones moved from rest (sparse — leaves untouched parts to other keys)">&#9210; Key moved</button>
+    <button id="tl-delkey" title="Delete the keyframe at the playhead (Del)">Delete</button>
+    <button id="tl-undo" title="Undo (Ctrl+Z)" disabled>&#8634;</button>
+    <button id="tl-redo" title="Redo (Ctrl+Shift+Z)" disabled>&#8635;</button>
+    <div class="tl-sep"></div>
+    <button id="tl-gizmo-rot" class="active" title="Rotate: turn a joint, or aim the selected IK hand/foot">Rotate</button>
+    <button id="tl-gizmo-move" title="Move: reposition the hip, or IK-place a wrist/ankle (green markers)">Move</button>
+    <label title="IK on: green markers place the hand/foot; orange poles aim the elbow/knee">
+      <input type="checkbox" id="tl-ik" checked /> IK
+    </label>
+    <label title="Keep joint rotations within anatomically safe ranges (swing + twist limits)">
+      <input type="checkbox" id="tl-limits" checked /> Limits
+    </label>
+    <button id="tl-pin" title="Pin the selected hand/foot in place — it stays planted when you move the hip">&#128204; Pin</button>
+    <button id="tl-head" title="Head aim — drag a target the neck + head turn to face">&#128064; Head</button>
+    <label title="Animation length in seconds">
+      Length <input id="tl-duration" type="number" min="0.5" max="60" step="0.5" value="4" />s
+    </label>
+    <div class="tl-sep"></div>
+    <button id="tl-save" title="Download as .bvh">&#128190; Save BVH</button>
+    <button id="tl-exit" title="Leave the editor">Exit</button>
+  </div>
+
+  <div id="status">loading&hellip;</div>
+
+  <script>
+    const DEFAULT_TAB = 'tab-parts';
+
+    function tabIdFromHash() {
+      const slug = location.hash.replace(/^#/, '').toLowerCase();
+      if (!slug) return DEFAULT_TAB;
+      const id = slug.startsWith('tab-') ? slug : `tab-${slug}`;
+      return document.getElementById(id) ? id : DEFAULT_TAB;
+    }
+
+    function activateTab(tabId) {
+      const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+      const panel = document.getElementById(tabId);
+      if (!btn || !panel) return;
+      document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
+      btn.classList.add('active');
+      panel.classList.add('active');
+    }
+
+    document.querySelectorAll('.tab-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const slug = btn.dataset.tab.replace(/^tab-/, '');
+        if (location.hash.replace(/^#/, '').toLowerCase() !== slug) location.hash = slug;
+        else activateTab(btn.dataset.tab);
+      });
+    });
+
+    window.addEventListener('hashchange', () => activateTab(tabIdFromHash()));
+    activateTab(tabIdFromHash());
+
+    const panelToggle = document.getElementById('panel-toggle');
+    panelToggle.addEventListener('click', () => {
+      const collapsed = document.body.classList.toggle('panel-collapsed');
+      panelToggle.title = panelToggle.ariaLabel = collapsed ? 'Show panel' : 'Hide panel';
+    });
+  </script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
