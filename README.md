@@ -2,7 +2,7 @@
 > [RuthAndRoth/Ruth](https://github.com/RuthAndRoth/Ruth) contributors — an
 > open-source mesh avatar built over years of rigging, fitting, testing, and
 > community iteration. *metaverse-avatar* is a small effort on top of that foundation
-> made possible by a certain place and time with AI; the credit belongs mostly to them.
+> made possible by a certain place and time with AI; the credit belongs mostly to those artists.
 
 <img width="2338" height="1511" alt="image" src="https://github.com/user-attachments/assets/c8071c73-6a64-4a65-8c87-b57dbea07995" />
 
