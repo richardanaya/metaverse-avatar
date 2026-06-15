@@ -4,6 +4,8 @@
 > community iteration. *metaverse-avatar* is a small effort on top of that foundation
 > made possible by a certain place and time with AI; the credit belongs mostly to them.
 
+<img width="2338" height="1511" alt="image" src="https://github.com/user-attachments/assets/c8071c73-6a64-4a65-8c87-b57dbea07995" />
+
 # metaverse-avatar
 
 A reusable three.js avatar library for the [RuthAndRoth](https://github.com/RuthAndRoth/Ruth)
