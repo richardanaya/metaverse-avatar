@@ -37,11 +37,21 @@ export const SLIDERS = [
   // ---- Body ----
   { id: 'height', group: 'Body', label: 'Height', special: 'height' },
   {
+    // Lateral (side-to-side) body width. The rig is Z-up / faces +X, so the
+    // lateral axis is Y (see comment above); scaling X here would bulge the
+    // belly/butt front-to-back, which is the `belly_size` slider's job. The
+    // neck is deliberately excluded — it's owned by neck_length / neck_thickness
+    // and scaling it would propagate through the grafted head (graftHeadParts)
+    // and deform the head/face. Clavicle collision volumes widen the shoulder
+    // mesh, AND we offset the collar joints laterally so the shoulder joints
+    // (and thus the arms in the hands part) track the widening torso — otherwise
+    // the torso widens but the arms stay put and float off the shoulders. The
+    // dedicated `shoulders` slider does this same joint offset for fine control.
     id: 'thickness', group: 'Body', label: 'Body Thickness',
-    // 'mNeck' (not 'NECK'): the body mesh is skinned to mNeck; the head part's
-    // grafted 'NECK' bone inherits the scale via its mNeck parent.
-    effects: [{ bones: ['PELVIS', 'BELLY', 'CHEST', 'UPPER_BACK', 'LOWER_BACK', 'mNeck', 'BUTT'], scale: [0.22, 0.22, 0] },
-              { bones: ['L_CLAVICLE', 'R_CLAVICLE'], scale: [0, 0.22, 0] }],
+    effects: [{ bones: ['PELVIS', 'BELLY', 'CHEST', 'UPPER_BACK', 'LOWER_BACK', 'BUTT'], scale: [0, 0.22, 0] },
+              { bones: ['L_CLAVICLE', 'R_CLAVICLE'], scale: [0, 0.22, 0] },
+              { bones: ['mCollarLeft'], offset: [0, 0.03, 0] },
+              { bones: ['mCollarRight'], offset: [0, -0.03, 0] }],
   },
 
   // ---- Head ----
@@ -330,10 +340,19 @@ export const SLIDERS = [
     effects: [{ bones: ['mTorso'], scale: [0, 0, 0.25] }],
   },
   {
+    // Shoulder width = distance between the shoulder joints. The clavicle
+    // joints (mCollarLeft/Right) sit at local Y = ±0.072 under mChest, with the
+    // shoulder joints (mShoulderLeft/Right) a further ±0.079 below them — so
+    // offsetting the collar joints laterally (Y, opposite signs per side) moves
+    // both shoulders apart/together. We offset the joints rather than scaling
+    // mChest in Y because mChest's scale would propagate to its mNeck child
+    // (and on through the grafted mHead) and widen the head too. The clavicle
+    // collision volumes are scaled for shoulder/upper-chest bulk.
     id: 'shoulders', group: 'Torso', label: 'Shoulders',
     effects: [
-      { bones: ['mChest'], scale: [0.1, 0, 0] },
-      { bones: ['L_CLAVICLE', 'R_CLAVICLE'], scale: [0.35, 0.15, 0.15] },
+      { bones: ['mCollarLeft'], offset: [0, 0.05, 0] },
+      { bones: ['mCollarRight'], offset: [0, -0.05, 0] },
+      { bones: ['L_CLAVICLE', 'R_CLAVICLE'], scale: [0.2, 0.25, 0.15] },
     ],
   },
   {
