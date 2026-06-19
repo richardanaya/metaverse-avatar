@@ -209,7 +209,7 @@ export class Avatar {
     this.lookAt = { enabled: false, target: new THREE.Vector3(), _was: false };
   }
 
-  async load(basePath, { parts = DEFAULT_PARTS } = {}) {
+  async load(basePath, { parts = DEFAULT_PARTS, skin = DEFAULT_SKIN } = {}) {
     if (typeof basePath !== 'string' || !basePath) {
       throw new Error(
         'Avatar.load(basePath): basePath is required — pass the URL/path to the ' +
@@ -224,8 +224,12 @@ export class Avatar {
       this._regions[region] = new PBRMaterialStack({ size: TEXTURE_SIZE, ...cfg });
     }
     await Promise.all(
-      Object.entries(DEFAULT_SKIN).flatMap(([region, channels]) =>
+      Object.entries(skin).flatMap(([region, channels]) =>
         Object.entries(channels).map(async ([channel, file]) => {
+          if (!file) {
+            this._regions[region]?.setSkinMap(channel, null);
+            return;
+          }
           this._regions[region]?.setSkinMap(channel, await loadImage(resolveUrl(basePath, file)));
         })
       )

@@ -38,7 +38,9 @@ export const SLIDERS = [
   { id: 'height', group: 'Body', label: 'Height', special: 'height' },
   {
     id: 'thickness', group: 'Body', label: 'Body Thickness',
-    effects: [{ bones: ['PELVIS', 'BELLY', 'CHEST', 'UPPER_BACK', 'LOWER_BACK', 'NECK', 'BUTT'], scale: [0.22, 0.22, 0] },
+    // 'mNeck' (not 'NECK'): the body mesh is skinned to mNeck; the head part's
+    // grafted 'NECK' bone inherits the scale via its mNeck parent.
+    effects: [{ bones: ['PELVIS', 'BELLY', 'CHEST', 'UPPER_BACK', 'LOWER_BACK', 'mNeck', 'BUTT'], scale: [0.22, 0.22, 0] },
               { bones: ['L_CLAVICLE', 'R_CLAVICLE'], scale: [0, 0.22, 0] }],
   },
 
@@ -396,7 +398,11 @@ export const SLIDERS = [
   },
   {
     id: 'neck_thickness', group: 'Torso', label: 'Neck Thickness',
-    effects: [{ bones: ['NECK'], scale: [0.35, 0.35, 0] }],
+    // Target mNeck (the body's Ruth neck bone), not the head part's flat 'NECK'
+    // bone. The body/upper-torso mesh is skinned to mNeck, and the head's NECK
+    // is grafted under mNeck (Avatar.graftHeadParts), so scaling mNeck thickens
+    // both sides of the neck seam together — matching neck_length below.
+    effects: [{ bones: ['mNeck'], scale: [0.35, 0.35, 0] }]
   },
 
   // ---- Arms ----

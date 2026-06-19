@@ -1,6 +1,6 @@
 {
   "name": "metaverse-avatar",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A self-contained, independently-controllable three.js avatar (RuthAndRoth Ruth2) with shape sliders, BVH/glTF animation, PBR materials, physics, lip-sync, blinking, and attachments — one class, new Avatar().",
   "type": "module",
   "author": "Richard Anaya <richard.anaya@gmail.com>",
