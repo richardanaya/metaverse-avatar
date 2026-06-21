@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { computeBoneAdjustments } from './sliders.js';
 import { buildNippleMorph, applyNippleMorph } from './nipple.js';

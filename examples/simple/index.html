@@ -20,6 +20,7 @@
   {
     "imports": {
       "three": "https://cdn.jsdelivr.net/npm/three@0.184.0/build/three.module.js",
+      "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.184.0/build/three.webgpu.js",
       "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.184.0/examples/jsm/"
     }
   }
@@ -29,7 +30,7 @@
   <div id="hud"><b>WASD</b> move · <b>Shift</b> run · <b>F</b> fly · <b>Space</b> jump · <b>X</b> sit · drag to orbit</div>
 
   <script type="module">
-    import * as THREE from 'three';
+    import * as THREE from 'three/webgpu';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
@@ -40,7 +41,8 @@
     import { PlayMode } from './playMode.js';
 
     // ---- renderer / scene -------------------------------------------------
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGPURenderer({ antialias: true });
+    await renderer.init();
     renderer.setPixelRatio(devicePixelRatio);
     renderer.setSize(innerWidth, innerHeight);
     renderer.shadowMap.enabled = true;

@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from 'three/webgpu';
 
 // Nipple protrusion morph — a localized vertex displacement on the body mesh.
 //

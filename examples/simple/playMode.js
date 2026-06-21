@@ -17,7 +17,7 @@
 // glTF clip loader (initGltfAnim/getGltfClip) used to fetch + retarget the
 // bundled locomotion animations.
 
-import * as THREE from 'three';
+import * as THREE from 'three/webgpu';
 import { initGltfAnim, getGltfClip } from '../../index.js';
 
 // ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from 'three/webgpu';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { partForBone } from '../../skeleton.js';
 

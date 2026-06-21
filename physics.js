@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from 'three/webgpu';
 
 // Soft-body physics for jiggle/sag on a group of bones (pecs, glutes, …).
 // Each instance drives one configurable bone group with its own parameters;

@@ -4,8 +4,9 @@
 // independently-controllable figure (skeleton, materials, animation, physics,
 // blinking, lip-sync, attachments, eye look-at). Construct as many as you like
 // and drive them separately. `three` is a peer dependency — the host app
-// provides it (via an import map in the browser, or node_modules under a
-// bundler), so multiple avatars share one THREE instance.
+// provides `three/webgpu` (via an import map in the browser, or node_modules
+// under a bundler), so avatars use Three's WebGPU renderer path with WebGL
+// fallback support and share one THREE instance.
 //
 //   import { Avatar } from 'metaverse-avatar';
 //   const avatar = await new Avatar().load('models/'); // basePath is required

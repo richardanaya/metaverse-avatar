@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from 'three/webgpu';
 import { BVHLoader } from 'three/addons/loaders/BVHLoader.js';
 
 // BVH joint name -> avatar skeleton bone name.

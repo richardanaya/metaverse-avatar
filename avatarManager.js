@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from 'three/webgpu';
 import { Avatar } from './Avatar.js';
 
 // Owns the set of live avatars in a scene and which one is "active" (the one

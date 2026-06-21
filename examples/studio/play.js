@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from 'three/webgpu';
 import { Locomotion } from '../common/locomotion.js';
 
 // Keyboard driving with a third-person chase camera.

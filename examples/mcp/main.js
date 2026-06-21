@@ -5,7 +5,7 @@
 // Look-at / blink / speech use the avatar's own per-instance capabilities
 // (avatar.setLookAt / .blinker / .speak), so no editor or panel UI is needed.
 
-import * as THREE from 'three';
+import * as THREE from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
@@ -19,7 +19,8 @@ import { McpClient } from './mcpClient.js';
 import { createAvatarApi } from './avatarApi.js';
 
 // ---- scene ------------------------------------------------------------
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGPURenderer({ antialias: true });
+await renderer.init();
 renderer.setPixelRatio(devicePixelRatio);
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;

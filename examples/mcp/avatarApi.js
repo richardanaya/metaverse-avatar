@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from 'three/webgpu';
 import { getCanonicalBone } from '../../skeleton.js';
 import { ANIMATION_REGISTRY, findAnimation } from '../common/registry.js';
 

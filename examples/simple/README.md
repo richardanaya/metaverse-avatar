@@ -94,14 +94,16 @@ The page loads three.js from a CDN through an **import map**:
 <script type="importmap">
 { "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@0.184.0/build/three.module.js",
+    "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.184.0/build/three.webgpu.js",
     "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.184.0/examples/jsm/"
 } }
 </script>
 ```
 
-The avatar library imports `three` by that bare name, so it shares the one three
-instance your app already provides (CDN here, or your bundler's copy). It does
-**not** ship its own three.
+The avatar library imports `three/webgpu`, so apps should provide that import-map
+entry or let their bundler resolve Three's WebGPU build. `WebGPURenderer` uses
+Three's unified renderer path with a WebGL fallback backend. The package still
+keeps `three` as a peer dependency and does **not** ship its own copy.
 
 ## Where to go next
 

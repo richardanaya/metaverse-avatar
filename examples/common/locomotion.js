@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from 'three/webgpu';
 import { initGltfAnim, getGltfClip } from '../../gltfAnim.js';
 
 const LOCO_ANIMS = {
